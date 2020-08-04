@@ -1,25 +1,49 @@
-pipeline{
-	agent {
-		dockerfile true
-	}
-	 stages {
-	    stage('SCM') {
-		steps {
-			checkout([$class: 'GitSCM', branches: [[name: '*/Develop']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/executeautomation/JenkinsPipeline']]])
-		      }
-	    }
-
-	    stage('Build') {
-		  steps {
-		       sh 'dotnet build "$WORKSPACE/src/EAApp/EAApp.csproj"'
-		  }
-	    }
-
-	    stage('Publish') {
-		  steps {
-		      sh 'dotnet publish "$WORKSPACE/src/EAApp/EAApp.csproj"'
-		    archiveArtifacts artifacts: 'src/EAApp/bin/Debug/netcoreapp3.1/publish/*'
-		  }
-	    }
+pipeline {
+  environment {
+    registry = "gbarska/test-pipeline"
+    registryCredential = 'gbarska-hub'
+    dockerImage = ''
   }
+  agent any
+  stages {
+    stage('Cloning Git') {
+      steps {
+       	checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/gbarska/jenkins-net']]])
+      }
+    }
+    stage('Test'){
+      agent {
+        dockerfile {
+            filename 'Dockerfile'
+            reuseNode true
+        }
+        steps{
+            sh 'echo "hello"'
+        }
+    }
+    }
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build registry + ":$BUILD_NUMBER"
+        }
+      }
+    }
+    stage('Deploy Image') {
+      steps{
+        script {
+          docker.withRegistry( '', registryCredential ) {
+            dockerImage.push()
+          }
+        }
+      }
+    }
+    stage('Remove Unused docker image') {
+      steps{
+        sh "docker rmi $registry:$BUILD_NUMBER"
+      }
+    }
+  }
+   
+ 
 }
