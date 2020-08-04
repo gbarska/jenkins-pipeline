@@ -4,30 +4,21 @@ pipeline {
     registryCredential = 'gbarska-hub'
     dockerImage = ''
   }
-  agent any {
-
-
-  stages {
-    stage('Cloning Git') {
-      steps {
-       	checkout([$class: 'GitSCM', branches: [[name: '*/Develop']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/gbarska/jenkins-net']]])
-      }
-    }
-    stage('Build') {
-          steps {
-               sh 'dotnet build "$WORKSPACE/src/EAApp/EAApp.csproj"'
-          }
-    }
- }
-}
  agent {
         dockerfile {
             filename 'Dockerfile'
             reuseNode true
         }
+
+     stage('SCM'){ 
+          steps{
+                sh 'echo "Cloning..."'
+         }     
+    }
+
     stage('Test'){ 
           steps{
-                    sh 'echo "hello"'
+                sh 'echo "Testing..."'
          }     
     }
 
