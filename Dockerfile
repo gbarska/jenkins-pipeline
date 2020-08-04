@@ -18,5 +18,17 @@ RUN apt-get install -y dotnet-sdk-3.1 && \
 
 RUN usermod -a -G root jenkins
 
+WORKDIR /home/app
+ 
+COPY ./*.sln ./
+COPY ./*/*.csproj ./
+RUN for file in $(ls *.csproj); do mkdir -p ./${file%.*}/ && mv $file ./${file%.*}/; done
+ 
+RUN dotnet restore
+ 
+COPY . .
+ 
+RUN dotnet test --verbosity=normal --results-directory /TestResults/ --logger "trx;LogFileName=test_results.xml" ./Tests/Tests.csproj
+
 # Good idea to switch back to the jenkins user.
 USER jenkins
