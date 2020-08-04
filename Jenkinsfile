@@ -4,24 +4,33 @@ pipeline {
     registryCredential = 'gbarska-hub'
     dockerImage = ''
   }
-  agent any
+  agent any {
+
+
   stages {
     stage('Cloning Git') {
       steps {
-       	checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/gbarska/jenkins-net']]])
+       	checkout([$class: 'GitSCM', branches: [[name: '*/Develop']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/gbarska/jenkins-net']]])
       }
     }
-    stage('Test'){
-      agent {
+    stage('Build') {
+          steps {
+               sh 'dotnet build "$WORKSPACE/src/EAApp/EAApp.csproj"'
+          }
+    }
+ }
+}
+ agent {
         dockerfile {
             filename 'Dockerfile'
             reuseNode true
         }
-        steps{
-            sh 'echo "hello"'
-        }
+    stage('Test'){ 
+          steps{
+                    sh 'echo "hello"'
+         }     
     }
-    }
+
     stage('Building image') {
       steps{
         script {
@@ -29,6 +38,7 @@ pipeline {
         }
       }
     }
+
     stage('Deploy Image') {
       steps{
         script {
@@ -38,12 +48,13 @@ pipeline {
         }
       }
     }
+
     stage('Remove Unused docker image') {
       steps{
         sh "docker rmi $registry:$BUILD_NUMBER"
       }
     }
-  }
-   
+ }
+ 
  
 }
